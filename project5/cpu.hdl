@@ -1,0 +1,48 @@
+CHIP CPU {
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+    Mux16(a= instruction, b= aluoutput, sel= instruction[15], out= aregin);
+    Not(in= instruction[15], out= ac);
+    Or(a= ac, b= instruction[5], out= aregload);
+    ARegister(in= aregin, load= aregload, out= aregout);
+
+    Not16(in= aregout, out= notaregout);
+    Not16(in= notaregout, out[0..14]= addressM);
+    Not16(in= notaregout, out= pcin);
+
+    Mux16(a= aregout, b= inM, sel= instruction[12], out= aluyin);
+    And(a= instruction[15], b= instruction[4], out= dregload);
+    DRegister(in= aluoutput, load= dregload, out= aluxin);
+    ALU(x= aluxin, y= aluyin, zx= instruction[11], nx= instruction[10], zy= instruction[9], ny= instruction[8], f= instruction[7], no= instruction[6], out= aluoutput, zr= aluzr, ng= alung);
+
+    Not16(in= aluoutput, out= notaluoutput);
+    Not16(in= notaluoutput, out= outM);
+
+    And(a= instruction[3], b= instruction[15], out= writeM);
+
+    Not(in= aluzr, out= notaluzr);
+    Not(in= alung, out= notalung);
+    And(a= instruction[0], b= notaluzr, out= temp0);
+    And(a= temp0, b= notalung, out= minterm0);
+    And(a= instruction[1], b= aluzr, out= minterm1);
+    And(a= instruction[2], b= notaluzr, out= temp1);
+    And(a= temp1, b= alung, out= minterm2);
+    Or(a= minterm0, b= minterm1, out= temp2);
+    Or(a= temp2, b= minterm2, out= loadcontrol);
+    Not(in= loadcontrol, out= inccontrol);
+
+    Mux(a= false, b= loadcontrol, sel= instruction[15], out= loadin);
+    Mux(a= true, b= inccontrol, sel= instruction[15], out= incin);
+
+    PC(in= pcin, load= loadin, inc= incin, reset= reset, out[0..14]= pc);
+}
