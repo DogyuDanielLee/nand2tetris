@@ -1,0 +1,36 @@
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16];
+
+    PARTS:
+    // 1) basic connection to parts
+    RAM16K(in= in, load= load0, address= address[0..13], out= in0);
+    Screen(in= in, load= load1, address= address[0..12], out= in1);
+    Keyboard(out= in2);
+
+    // 2) logic for demux load
+    DMux(in= load, sel= address[14], a= load0, b= tempload);
+    DMux(in= tempload, sel= address[13], a= load1, b= load2);
+
+    // 3) logic for mux output
+    
+    // 3-1) OR13 for address[0..12]
+    // this will be used for addressing the Keyboard
+    Or(a= address[0], b= address[1], out= o0);
+    Or(a= address[2], b= address[3], out= o1);
+    Or(a= address[4], b= address[5], out= o2);
+    Or(a= address[6], b= address[7], out= o3);
+    Or(a= address[8], b= address[9], out= o4);
+    Or(a= address[10], b= address[11], out= o5);
+    Or(a= o0, b= o1, out= oo0);
+    Or(a= o2, b= o3, out= oo1);
+    Or(a= o4, b= o5, out= oo2);
+    Or(a= oo0, b= oo1, out= ooo0);
+    Or(a= oo2, b= address[12], out= ooo1);
+    Or(a= ooo0, b= ooo1, out= or13);
+
+    // 3-2) mux output
+    Mux16(a= in2, b= false, sel= or13, out= temp0);
+    Mux16(a= in1, b= temp0, sel= address[13], out= temp1);
+    Mux16(a= in0, b= temp1, sel= address[14], out= out);
+}
