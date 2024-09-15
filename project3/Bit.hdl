@@ -1,0 +1,10 @@
+CHIP Bit {
+    IN in, load;
+    OUT out;
+
+    PARTS:
+    DFF(in= muxout, out= tempout);
+    Mux(a= tempout, b= in, sel= load, out= muxout);
+    Not(in= tempout, out= temptempout);
+    Not(in= temptempout, out= out);
+}
